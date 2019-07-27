@@ -5,7 +5,23 @@ org: boristane
 provider:
   name: aws
   runtime: nodejs10.x
+  memorySize: 128
+  timeout: 300
+  stage: ${opt:stage}
+  deploymentBucket:
+    name: boristane-lambdas-deployments
+  region: eu-west-2
+  logRetentionInDays: 7
+  versionFunctions: false
 
 functions:
-  hello:
-    handler: handler.hello
+  hourlyTFLStatusCron:
+    handler: dist/src/tflstatus.main
+    environment:
+      TFL_CONSUMER_KEY: ${file(./${opt:stage}.yml):tflConsumerKey}
+      TFL_CONSUMER_SECRET_KEY: ${file(./${opt:stage}.yml):tflConsumerSecretKey}
+      TFL_ACCESS_TOKEN: ${file(./${opt:stage}.yml):tflAccessToken}
+      ACCESS_TOKEN_SECRET: ${file(./${opt:stage}.yml):tflAccessTokenSecret}
+
+    events:
+      - schedule: cron(0 * * * ? *)
