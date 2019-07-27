@@ -1,0 +1,37 @@
+{
+  "name": "twitter-bots",
+  "version": "1.0.0",
+  "description": "A collection of twitter bots",
+  "main": "handler.js",
+  "scripts": {
+    "test": "npx jest",
+    "build": "npx tsc"
+  },
+  "keywords": [
+    "twitter",
+    "bots"
+  ],
+  "author": "Boris Tane",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "dotenv": "^8.0.0",
+    "moment": "^2.24.0",
+    "moment-timezone": "^0.5.26",
+    "twit": "^2.2.11"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.31",
+    "@types/jest": "^24.0.15",
+    "@types/moment": "^2.13.0",
+    "@types/moment-timezone": "^0.5.12",
+    "@types/node": "^12.6.8",
+    "@types/twit": "^2.2.22",
+    "jest": "^24.8.0",
+    "serverless-webpack": "^5.3.1",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3",
+    "webpack": "^4.38.0"
+  }
+}

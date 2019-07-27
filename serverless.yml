@@ -1,0 +1,11 @@
+service: twitter-bots
+app: twitter-bots-app
+org: boristane
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+
+functions:
+  hello:
+    handler: handler.hello
