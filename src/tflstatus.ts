@@ -61,12 +61,14 @@ export function constructTweets(data: ITflTubeStatusResponseItem[]): string[] {
       }
       text += ` until ${toTime} ${toDate}`;
     }
-    text += ".";
     return text;
   });
 
-  const tweet1 = linesText.slice(0, 5).join("\n");
-  const tweet2 = linesText.slice(5).join("\n");
+  const now = moment()
+    .tz("Europe/London")
+    .format("DD/MM/YY HH:mm");
+  const tweet1 = `${now}\n${linesText.slice(0, 5).join("\n")}`;
+  const tweet2 = `${now}\n${linesText.slice(5).join("\n")}`;
   return [tweet1, tweet2];
 }
 
@@ -104,6 +106,7 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
     const tweet = tweets[i];
     try {
       await Twitter.post("statuses/update", { status: tweet });
+      console.log(`Successfully tweeted ${tweet}`);
     } catch (err) {
       const text = `Error posting new tweet ${tweet}. Error: ${err}`;
       console.error(text);
