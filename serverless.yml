@@ -22,6 +22,8 @@ functions:
       TFL_CONSUMER_SECRET_KEY: ${file(./${opt:stage}.yml):tflConsumerSecretKey}
       TFL_ACCESS_TOKEN: ${file(./${opt:stage}.yml):tflAccessToken}
       ACCESS_TOKEN_SECRET: ${file(./${opt:stage}.yml):tflAccessTokenSecret}
+      MONGO_ATLAS_PASSWORD: ${file(./${opt:stage}.yml):MONGO_ATLAS_PASSWORD}
+      MONGO_ATLAS_DATABASE: ${file(./${opt:stage}.yml):MONGO_ATLAS_DATABASE}
 
     events:
       - schedule: cron(0 * * * ? *)

@@ -4,12 +4,17 @@ import { IncomingMessage } from "http";
 import axios from "axios";
 import { ITflTubeStatusResponseItem, ILineStatus } from "./interfaces/ITflTubeStatusResponseItem";
 import moment from "moment-timezone";
+import { saveToDB } from "./controllers/lineStatus";
+
+import mongoose from "mongoose";
 
 const expectedEnvVariables: string[] = [
   "TFL_CONSUMER_KEY",
   "TFL_CONSUMER_SECRET_KEY",
   "TFL_ACCESS_TOKEN",
-  "ACCESS_TOKEN_SECRET"
+  "ACCESS_TOKEN_SECRET",
+  "MONGO_ATLAS_PASSWORD",
+  "MONGO_ATLAS_DATABASE"
 ];
 const missingEnvVariables: string[] = [];
 expectedEnvVariables.forEach(variable => {
@@ -23,7 +28,14 @@ if (missingEnvVariables.length >= 1) {
   process.exit(1);
 }
 
-async function getTubeStatus(): Promise<ITflTubeStatusResponseItem[]> {
+async function connectToDB() {
+  const mongoDBURI = `mongodb+srv://boristane:${
+    process.env.MONGO_ATLAS_PASSWORD
+  }@blog-fy3jk.gcp.mongodb.net/${process.env.MONGO_ATLAS_DATABASE}?retryWrites=true&w=majority`;
+  await mongoose.connect(mongoDBURI, { useNewUrlParser: true });
+}
+
+async function getTubeStatus(): Promise<ITflTubeStatusResponseItem[] | undefined> {
   try {
     const tubeStatusUrl = "https://api.tfl.gov.uk/line/mode/tube/status";
     const { data } = await axios.get(tubeStatusUrl);
@@ -33,6 +45,24 @@ async function getTubeStatus(): Promise<ITflTubeStatusResponseItem[]> {
     console.error(text);
     process.exit(1);
   }
+}
+
+async function saveStationsStatus(status: ILineStatus) {
+  const reason = status.reason ? status.reason : "";
+  let from = "";
+  let to = "";
+  if (status.validityPeriods.length > 0) {
+    from = status.validityPeriods[0].fromDate;
+    to = status.validityPeriods[0].toDate;
+  }
+  saveToDB(
+    status.lineId,
+    status.statusSeverity,
+    status.statusSeverityDescription,
+    reason,
+    from,
+    to
+  );
 }
 
 export function constructTweets(data: ITflTubeStatusResponseItem[]): string[] {
@@ -115,17 +145,23 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
 }
 
 export async function main() {
+  await connectToDB();
   const appName = "@tflstatusnow";
 
   const Twitter = new Twit({
-    consumer_key: process.env.TFL_CONSUMER_KEY,
-    consumer_secret: process.env.TFL_CONSUMER_SECRET_KEY,
-    access_token: process.env.TFL_ACCESS_TOKEN,
-    access_token_secret: process.env.ACCESS_TOKEN_SECRET
+    consumer_key: process.env.TFL_CONSUMER_KEY || "",
+    consumer_secret: process.env.TFL_CONSUMER_SECRET_KEY || "",
+    access_token: process.env.TFL_ACCESS_TOKEN || "",
+    access_token_secret: process.env.ACCESS_TOKEN_SECRET || ""
   });
-
   await authenticateTwitter(Twitter, appName);
   const data = await getTubeStatus();
+  if (!data) return;
+  for (let i = 0; i < data.length; i += 1) {
+    const status = data[i].lineStatuses[0];
+    status.lineId = data[i].id;
+    await saveStationsStatus(status);
+  }
   const tweets = constructTweets(data);
   await postTweets(Twitter, tweets);
 }
