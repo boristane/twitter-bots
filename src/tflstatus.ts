@@ -1,12 +1,12 @@
 require("dotenv").config();
 import Twit from "twit";
-import { IncomingMessage } from "http";
 import axios from "axios";
 import { ITflTubeStatusResponseItem, ILineStatus } from "./interfaces/ITflTubeStatusResponseItem";
 import moment from "moment-timezone";
 import { saveToDB, findLatestStatus } from "./controllers/lineStatus";
 
 import mongoose from "mongoose";
+import { Context } from "aws-lambda";
 
 const expectedEnvVariables: string[] = [
   "TFL_CONSUMER_KEY",
@@ -43,7 +43,7 @@ async function getTubeStatus(): Promise<ITflTubeStatusResponseItem[] | undefined
   } catch (err) {
     const text = `Error fetching data from TFL. Error: ${err}`;
     console.error(text);
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
@@ -127,7 +127,7 @@ async function authenticateTwitter(Twitter: Twit, appName: string) {
   } catch (err) {
     const text = `Error authenticating ${appName}. Error: ${err}`;
     console.error(text);
-    process.exit(1);
+    return (process.exitCode = 1);
   }
 }
 
@@ -140,6 +140,7 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
     } catch (err) {
       const text = `Error posting new tweet ${tweet}. Error: ${err}`;
       console.error(text);
+      return (process.exitCode = 1);
     }
   }
 }
@@ -156,10 +157,11 @@ async function saveData(data: ITflTubeStatusResponseItem[]): Promise<boolean> {
     }
     await saveStationsStatus(status);
   }
+  console.log(`Saved data for all stations. I ${mustTweet ? "will" : "will not"} tweet.`);
   return mustTweet;
 }
 
-export async function main() {
+export async function main(event: any, context: Context) {
   await connectToDB();
   const appName = "@tflstatusnow";
   const Twitter = new Twit({
@@ -171,15 +173,19 @@ export async function main() {
 
   await authenticateTwitter(Twitter, appName);
   const data = await getTubeStatus();
-  if (!data) return;
+  if (!data) return (process.exitCode = 1);
   const mustTweet = await saveData(data);
   if (!mustTweet) {
-    console.log("Did not tweet as the statuses are the same.");
+    const message = "Did not tweet as the statuses are the same.";
+    console.log(message);
+    context.succeed(message);
     process.exit(0);
+    return;
   }
   const tweets = constructTweets(data);
   await postTweets(Twitter, tweets);
+  const message = "Did tweet.";
+  console.log(message);
+  context.succeed(message);
   process.exit(0);
 }
-
-main();

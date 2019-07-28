@@ -15,6 +15,7 @@
   "author": "Boris Tane",
   "license": "ISC",
   "dependencies": {
+    "aws-lambda": "^0.1.2",
     "axios": "^0.19.0",
     "dotenv": "^8.0.0",
     "moment": "^2.24.0",
