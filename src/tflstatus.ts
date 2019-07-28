@@ -4,7 +4,7 @@ import { IncomingMessage } from "http";
 import axios from "axios";
 import { ITflTubeStatusResponseItem, ILineStatus } from "./interfaces/ITflTubeStatusResponseItem";
 import moment from "moment-timezone";
-import { saveToDB } from "./controllers/lineStatus";
+import { saveToDB, findLatestStatus } from "./controllers/lineStatus";
 
 import mongoose from "mongoose";
 
@@ -144,24 +144,42 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
   }
 }
 
+async function saveData(data: ITflTubeStatusResponseItem[]): Promise<boolean> {
+  let mustTweet = false;
+  for (let i = 0; i < data.length; i += 1) {
+    const status = data[i].lineStatuses[0];
+    status.lineId = data[i].id;
+    const existingStatus = await findLatestStatus(status.lineId);
+    if (existingStatus && existingStatus.statusSeverity !== status.statusSeverity) {
+      console.log(`There is a change in status severity at ${status.lineId} line. Will tweet.`);
+      mustTweet = true;
+    }
+    await saveStationsStatus(status);
+  }
+  return mustTweet;
+}
+
 export async function main() {
   await connectToDB();
   const appName = "@tflstatusnow";
-
   const Twitter = new Twit({
     consumer_key: process.env.TFL_CONSUMER_KEY || "",
     consumer_secret: process.env.TFL_CONSUMER_SECRET_KEY || "",
     access_token: process.env.TFL_ACCESS_TOKEN || "",
     access_token_secret: process.env.ACCESS_TOKEN_SECRET || ""
   });
+
   await authenticateTwitter(Twitter, appName);
   const data = await getTubeStatus();
   if (!data) return;
-  for (let i = 0; i < data.length; i += 1) {
-    const status = data[i].lineStatuses[0];
-    status.lineId = data[i].id;
-    await saveStationsStatus(status);
+  const mustTweet = await saveData(data);
+  if (!mustTweet) {
+    console.log("Did not tweet as the statuses are the same.");
+    process.exit(0);
   }
   const tweets = constructTweets(data);
   await postTweets(Twitter, tweets);
+  process.exit(0);
 }
+
+main();

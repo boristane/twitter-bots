@@ -1,4 +1,4 @@
-import LineStatus from "../models/LineStatus";
+import LineStatus, { ILineStatus } from "../models/LineStatus";
 import mongoose from "mongoose";
 
 export async function create(
@@ -34,4 +34,11 @@ export async function saveToDB(
   toDate: string
 ) {
   await create(line, statusSeverity, status, reason, fromDate, toDate);
+}
+
+export async function findLatestStatus(line: string): Promise<ILineStatus | null> {
+  const status = await LineStatus.findOne({ line })
+    .sort({ created: -1 })
+    .exec();
+  return status;
 }
