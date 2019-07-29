@@ -11,7 +11,7 @@ export async function create(
 ) {
   const created = new Date();
   const updated = created;
-  const user = new LineStatus({
+  const lineStatus = new LineStatus({
     _id: mongoose.Types.ObjectId(),
     line,
     status,
@@ -22,7 +22,7 @@ export async function create(
     created,
     updated
   });
-  await user.save();
+  await lineStatus.save();
 }
 
 export async function saveToDB(
@@ -34,11 +34,14 @@ export async function saveToDB(
   toDate: string
 ) {
   await create(line, statusSeverity, status, reason, fromDate, toDate);
+  console.log(`Saved status for ${line} line.`);
 }
 
 export async function findLatestStatus(line: string): Promise<ILineStatus | null> {
   const status = await LineStatus.findOne({ line })
-    .sort({ created: -1 })
+    .sort({ created: "desc" })
+    .lean()
     .exec();
+  console.log(`Got the lastest status for ${line}`);
   return status;
 }

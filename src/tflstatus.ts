@@ -39,6 +39,7 @@ async function getTubeStatus(): Promise<ITflTubeStatusResponseItem[] | undefined
   try {
     const tubeStatusUrl = "https://api.tfl.gov.uk/line/mode/tube/status";
     const { data } = await axios.get(tubeStatusUrl);
+    console.log("Successfully retrieved data from TFL.");
     return data;
   } catch (err) {
     const text = `Error fetching data from TFL. Error: ${err}`;
@@ -147,16 +148,24 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
 
 async function saveData(data: ITflTubeStatusResponseItem[]): Promise<boolean> {
   let mustTweet = false;
+  const savingPromises = [];
+  const existingStatusPromises = [];
   for (let i = 0; i < data.length; i += 1) {
     const status = data[i].lineStatuses[0];
     status.lineId = data[i].id;
-    const existingStatus = await findLatestStatus(status.lineId);
+    existingStatusPromises.push(findLatestStatus(status.lineId));
+    savingPromises.push(saveStationsStatus(status));
+  }
+  const existingStatuses = await Promise.all(existingStatusPromises);
+  existingStatuses.forEach((existingStatus, index) => {
+    const status = data[index].lineStatuses[0];
+    status.lineId = data[index].id;
     if (existingStatus && existingStatus.statusSeverity !== status.statusSeverity) {
       console.log(`There is a change in status severity at ${status.lineId} line. Will tweet.`);
       mustTweet = true;
     }
-    await saveStationsStatus(status);
-  }
+  });
+  await Promise.all(savingPromises);
   console.log(`Saved data for all stations. I ${mustTweet ? "will" : "will not"} tweet.`);
   return mustTweet;
 }
@@ -178,14 +187,14 @@ export async function main(event: any, context: Context) {
   if (!mustTweet) {
     const message = "Did not tweet as the statuses are the same.";
     console.log(message);
+    await mongoose.connection.close();
     context.succeed(message);
-    process.exit(0);
     return;
   }
   const tweets = constructTweets(data);
   await postTweets(Twitter, tweets);
   const message = "Did tweet.";
   console.log(message);
+  await mongoose.connection.close();
   context.succeed(message);
-  process.exit(0);
 }
