@@ -26,4 +26,4 @@ functions:
       MONGO_ATLAS_DATABASE: ${file(./${opt:stage}.yml):MONGO_ATLAS_DATABASE}
 
     events:
-      - schedule: cron(0/10 * * * ? *)
+      - schedule: cron(0 * * * ? *)

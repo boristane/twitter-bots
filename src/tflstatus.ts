@@ -7,6 +7,7 @@ import { saveToDB, findLatestStatus } from "./controllers/lineStatus";
 
 import mongoose from "mongoose";
 import { Context } from "aws-lambda";
+import { saveTweetToDB, findAllTweets } from "./controllers/tweet";
 
 const expectedEnvVariables: string[] = [
   "TFL_CONSUMER_KEY",
@@ -136,12 +137,37 @@ async function postTweets(Twitter: Twit, tweets: string[]) {
   for (let i = tweets.length - 1; i > -1; i -= 1) {
     const tweet = tweets[i];
     try {
-      await Twitter.post("statuses/update", { status: tweet });
+      const data = await Twitter.post("statuses/update", { status: tweet });
+      // await deleteTweets(Twitter);
+      if (data.hasOwnProperty("data")) {
+        // @ts-ignore
+        await saveTweetToDB(data.data.id, data.data.text);
+        console.log("Saved the tweet");
+      }
       console.log(`Successfully tweeted ${tweet}`);
     } catch (err) {
       const text = `Error posting new tweet ${tweet}. Error: ${err}`;
       console.error(text);
       return (process.exitCode = 1);
+    }
+  }
+}
+
+async function deleteTweets(Twitter: Twit) {
+  const tweets = await findAllTweets();
+  if (!(tweets && tweets.length > 0)) {
+    return;
+  }
+  for (let i = 0; i < tweets.length; i += 1) {
+    const id = tweets[i].id;
+    try {
+      console.log(typeof id);
+      await Twitter.post("statuses/destroy/:id", { id });
+      console.log(`Deleted tweet ${id}`);
+    } catch (err) {
+      const text = `Error deleting ${id}. Error: ${err}`;
+      console.error(text);
+      // return (process.exitCode = 1);
     }
   }
 }
@@ -157,6 +183,9 @@ async function saveData(data: ITflTubeStatusResponseItem[]): Promise<boolean> {
     savingPromises.push(saveStationsStatus(status));
   }
   const existingStatuses = await Promise.all(existingStatusPromises);
+  if (existingStatuses.length <= 0) {
+    mustTweet = true;
+  }
   existingStatuses.forEach((existingStatus, index) => {
     const status = data[index].lineStatuses[0];
     status.lineId = data[index].id;
