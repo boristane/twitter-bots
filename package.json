@@ -25,9 +25,7 @@
     "nodemon": "^1.19.1",
     "ts-node": "^8.3.0",
     "twit": "^2.2.11",
-    "typescript": "^3.5.3"
-  },
-  "devDependencies": {
+    "typescript": "^3.5.3",
     "@types/aws-lambda": "^8.10.31",
     "@types/jest": "^24.0.15",
     "@types/moment": "^2.13.0",
@@ -39,5 +37,6 @@
     "serverless-webpack": "^5.3.1",
     "ts-jest": "^24.0.2",
     "webpack": "^4.38.0"
-  }
+  },
+  "devDependencies": {}
 }
