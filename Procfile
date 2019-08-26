@@ -1,0 +1,1 @@
+worker: npx nodemon src/replies.ts
