@@ -85,8 +85,7 @@ async function listenToStream() {
       if (text.toLocaleLowerCase().includes(id.split("-")[0])) {
         console.log(`Matched "${text}" with "${id} line".`);
         const data = await getTubeStatus();
-        if (!data) return (process.exitCode = 1);
-        saveData(data);
+        if (!data) return;
         const tweet = constructTweet(data, lineIds[i], name);
         await replyToTweet(Twitter, tweet, id_str);
         return;
