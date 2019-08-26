@@ -24,7 +24,8 @@
     "mongoose": "^5.6.7",
     "nodemon": "^1.19.1",
     "ts-node": "^8.3.0",
-    "twit": "^2.2.11"
+    "twit": "^2.2.11",
+    "typescript": "^3.5.3"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.31",
@@ -37,7 +38,6 @@
     "jest": "^24.8.0",
     "serverless-webpack": "^5.3.1",
     "ts-jest": "^24.0.2",
-    "typescript": "^3.5.3",
     "webpack": "^4.38.0"
   }
 }
